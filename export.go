@@ -36,7 +36,7 @@ func main() {
 		wr := csv.NewWriter(os.Stdout)
 		wr.Write([]string{
 			"id", "code2", "code3", "name", "short", "native",
-			"continent", "campital", "currency", "langs",
+			"continent", "capital", "currency", "langs",
 			"phones", "lat", "lon", "zones",
 		})
 		for _, c := range gogeo.Countries {

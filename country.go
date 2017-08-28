@@ -27,7 +27,7 @@ type Country struct {
 	ShortName   string      `json:"short,omitempty"`
 	Native      string      `json:"native,omitempty"`
 	Continent   string      `json:"continent,omitempty"`
-	Capital     string      `json:"campital,omitempty"`
+	Capital     string      `json:"capital,omitempty"`
 	Currency    []string    `json:"currency,omitempty"`
 	Languages   []string    `json:"langs,omitempty"`
 	Phones      []string    `json:"phones,omitempty"`
