@@ -1478,7 +1478,7 @@ var Countries = []Country{
 	},
 	{
 		ID:          81,
-		Code2:       "GB",
+		Code2:       "UK",
 		Code3:       "GBR",
 		Name:        "United Kingdom",
 		ShortName:   "",
