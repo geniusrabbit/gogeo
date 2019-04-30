@@ -50,3 +50,37 @@ func Test_JSONEncodingDecoding(t *testing.T) {
 		}
 	}
 }
+
+func Test_CountryCode2ByString(t *testing.T) {
+	var tests = []struct {
+		code        string
+		resultCode3 string
+	}{
+		{
+			code:        "**",
+			resultCode3: "***",
+		},
+		{
+			code:        "--",
+			resultCode3: "***",
+		},
+		{
+			code:        "X",
+			resultCode3: "***",
+		},
+		{
+			code:        "UK",
+			resultCode3: "GBR",
+		},
+		{
+			code:        "GGY",
+			resultCode3: "GGY",
+		},
+	}
+
+	for _, test := range tests {
+		if cc := CountryCode2ByString(test.code); cc.ISO3() != test.resultCode3 {
+			t.Errorf(`invalid country code [%s] must be [%s]`, cc.ISO3(), test.resultCode3)
+		}
+	}
+}
