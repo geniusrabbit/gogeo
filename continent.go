@@ -7,12 +7,12 @@ package gogeo
 
 // Continent description
 type Continent struct {
-	ID    int
+	ID    uint8
 	Code2 string
 	Name  string
 }
 
-// Continents list
+// Continents list (IDs are 1-based; Country.continent stores this ID).
 var Continents = []Continent{
 	{ID: 1, Code2: "EU", Name: "Europe"},
 	{ID: 2, Code2: "AS", Name: "Asia"},
@@ -21,4 +21,31 @@ var Continents = []Continent{
 	{ID: 5, Code2: "SA", Name: "South America"},
 	{ID: 6, Code2: "NA", Name: "North America"},
 	{ID: 7, Code2: "AN", Name: "Antarctica"},
+}
+
+// ContinentByCode2 returns a continent by ISO-like 2-letter code, or nil.
+func ContinentByCode2(code string) *Continent {
+	if len(code) != 2 {
+		return nil
+	}
+	id := continentID(code[0], code[1])
+	if id == 0 {
+		return nil
+	}
+	return &Continents[id-1]
+}
+
+func continentID(b0, b1 byte) uint8 {
+	if b0 < 'A' || b0 > 'Z' || b1 < 'A' || b1 > 'Z' {
+		return 0
+	}
+	return continentIndex[b0-'A'][b1-'A']
+}
+
+var continentIndex = [26][26]uint8{
+	'A' - 'A': {'F' - 'A': 3, 'N' - 'A': 7, 'S' - 'A': 2},
+	'E' - 'A': {'U' - 'A': 1},
+	'N' - 'A': {'A' - 'A': 6},
+	'O' - 'A': {'C' - 'A': 4},
+	'S' - 'A': {'A' - 'A': 5},
 }

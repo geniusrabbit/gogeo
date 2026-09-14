@@ -3,7 +3,7 @@
 // @author Dmitry Ponomarev <demdxx@gmail.com> 2017
 //
 
-// +build ignore
+//go:build ignore
 
 package main
 
@@ -35,15 +35,16 @@ func main() {
 	case "csv":
 		wr := csv.NewWriter(os.Stdout)
 		wr.Write([]string{
-			"id", "code2", "code3", "name", "short", "native",
+			"id", "code2", "code3", "name", "native",
 			"continent", "capital", "currency", "langs",
 			"phones", "lat", "lon", "zones",
 		})
-		for _, c := range gogeo.Countries {
-			data, _ := json.Marshal(c.TimeZones)
+		for i := range gogeo.Countries {
+			c := &gogeo.Countries[i]
+			data, _ := json.Marshal(c.TimeZones())
 			wr.Write([]string{
-				strconv.Itoa(c.ID), c.Code2, c.Code3, c.Name, c.ShortName, c.Native, c.Continent, c.Capital,
-				strings.Join(c.Currency, ","), strings.Join(c.Languages, ","), strings.Join(c.Phones, ","),
+				strconv.Itoa(int(c.ID)), c.ISO2(), c.ISO3(), c.Name, c.Native, c.Continent(), c.Capital,
+				strings.Join(c.Currency(), ","), strings.Join(c.Languages(), ","), strings.Join(c.Phones(), ","),
 				fmt.Sprintf("%f", c.Coordinates.Lat), fmt.Sprintf("%f", c.Coordinates.Lon), string(data),
 			})
 		}

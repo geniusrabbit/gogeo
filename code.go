@@ -10,19 +10,16 @@ import (
 // UndefinedCountryCode2 for undefined codename
 var UndefinedCountryCode2 = Code2{UndefinedCountryCodeISO2[0], UndefinedCountryCodeISO2[1]}
 
-// CountryCode2ByString returns code by string code ISO-2 or ISO-3
+// CountryCode2ByString returns code by string code ISO-2 or ISO-3.
 func CountryCode2ByString(code string) Code2 {
-	var country *Country
 	switch len(code) {
 	case 2:
-		country = CountryByCode2(code)
+		return CountryByCode2(code).Code2
 	case 3:
-		country = CountryByCode3(code)
-	}
-	if country == nil {
+		return CountryByCode3(code).Code2
+	default:
 		return UndefinedCountryCode2
 	}
-	return Code2{country.Code2[0], country.Code2[1]}
 }
 
 // Error list...
@@ -31,29 +28,30 @@ var (
 	ErrCode2InvalidValueSize = errors.New("[gogeo.code2] invalid value size, supports only two 2 chars")
 )
 
-// Code2 implements basic
+// Code2 implements a 2-letter country code.
 type Code2 [2]byte
 
 func (cc Code2) String() string {
 	return cc.ISO2()
 }
 
-// ISO2 returns the string code with two simbols
+// ISO2 returns the interned two-letter code for a known country, or "**".
 func (cc Code2) ISO2() string {
-	return string(cc[:])
+	c := lookupCode2(cc[0], cc[1])
+	if c.Code2 == cc {
+		return countryISO2[c.ID]
+	}
+	return UndefinedCountryCodeISO2
 }
 
-// ISO3 returns the string code with three simbols
+// ISO3 returns the interned three-letter code for the matching country.
 func (cc Code2) ISO3() string {
-	if country := CountryByCode2(cc.ISO2()); country != nil {
-		return country.Code3
-	}
-	return UndefinedCountryCodeISO3
+	return countryISO3[lookupCode2(cc[0], cc[1]).ID]
 }
 
 // Value implementation of sql driver.Valuer interface
 func (cc Code2) Value() (driver.Value, error) {
-	return []byte(cc[:]), nil
+	return cc.ISO2(), nil
 }
 
 // Scan implementation of sql.Scanner interface
@@ -61,16 +59,14 @@ func (cc *Code2) Scan(data interface{}) error {
 	switch v := data.(type) {
 	case []byte:
 		if len(v) != 2 {
-			*cc = Code2{v[0], v[1]}
-		} else {
 			return ErrCode2InvalidValueSize
 		}
+		*cc = Code2{v[0], v[1]}
 	case string:
 		if len(v) != 2 {
-			*cc = Code2{v[0], v[1]}
-		} else {
 			return ErrCode2InvalidValueSize
 		}
+		*cc = Code2{v[0], v[1]}
 	default:
 		return ErrCode2InvalidScanType
 	}
@@ -79,11 +75,20 @@ func (cc *Code2) Scan(data interface{}) error {
 
 // MarshalJSON implements json.Marshaler interface
 func (cc Code2) MarshalJSON() ([]byte, error) {
-	return json.Marshal(cc.ISO2())
+	return []byte{'"', cc[0], cc[1], '"'}, nil
 }
 
 // UnmarshalJSON implements json.Unmarshaler interface
 func (cc *Code2) UnmarshalJSON(data []byte) error {
+	if n := len(data); n >= 2 && data[0] == '"' && data[n-1] == '"' {
+		s := data[1 : n-1]
+		if len(s) != 2 {
+			*cc = UndefinedCountryCode2
+			return nil
+		}
+		*cc = Code2{s[0], s[1]}
+		return nil
+	}
 	var code string
 	if err := json.Unmarshal(data, &code); err != nil {
 		return err
@@ -97,8 +102,8 @@ func (cc *Code2) UnmarshalJSON(data []byte) error {
 }
 
 var (
-	_ driver.Valuer    = &UndefinedCountryCode2
+	_ driver.Valuer    = UndefinedCountryCode2
 	_ sql.Scanner      = &UndefinedCountryCode2
-	_ json.Marshaler   = &UndefinedCountryCode2
+	_ json.Marshaler   = UndefinedCountryCode2
 	_ json.Unmarshaler = &UndefinedCountryCode2
 )
