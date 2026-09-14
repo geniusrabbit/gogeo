@@ -5,7 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/geniusrabbit/gogeo)](https://goreportcard.com/report/github.com/geniusrabbit/gogeo)
 [![Go Reference](https://pkg.go.dev/badge/github.com/geniusrabbit/gogeo.svg)](https://pkg.go.dev/github.com/geniusrabbit/gogeo)
 
-Static country and continent reference data with O(1) ISO lookups and a `Code2` type for JSON and SQL.
+Static country, continent, and ISO 3166-2 region data with O(1) country lookups, packed region tables, and `Code2` / `RegionCode` types for JSON and SQL.
 
 License: Apache 2.0
 
@@ -43,24 +43,34 @@ func main() {
 
     eu := gogeo.ContinentByCode2("EU")
     fmt.Println(eu.Name)
+
+    ca := gogeo.RegionByCode("US-CA")
+    fmt.Println(ca.Name, ca.Type(), ca.Country().Name) // California State United States
+
+    // Official ISO uses GB-*; gogeo country code is UK
+    eng := gogeo.RegionByCode("UK-ENG")
+    fmt.Println(eng.Code(), eng.Name) // GB-ENG England
 }
 ```
 
-`Code2` implements `json.Marshaler` / `Unmarshaler`, `driver.Valuer`, and `sql.Scanner`:
+`Code2` and `RegionCode` implement `json.Marshaler` / `Unmarshaler`, `driver.Valuer`, and `sql.Scanner`:
 
 ```go
 type User struct {
-    Country gogeo.Code2 `json:"country" db:"country_code"`
+    Country gogeo.Code2      `json:"country" db:"country_code"`
+    Region  gogeo.RegionCode `json:"region" db:"region_code"`
 }
 ```
 
-Lists on `Country` are methods over packed tables: `Currency()`, `Languages()`, `Phones()`, `TimeZones()`.
+Lists on `Country` are methods over packed tables: `Currency()`, `Languages()`, `Phones()`, `TimeZones()`, `Regions()`.
 
-The dataset includes GeoIP-style extras (`A1`, `A2`, `O1`, `AP`, `EU`) and `UK` for the United Kingdom (not `GB`).
+The dataset includes GeoIP-style extras (`A1`, `A2`, `O1`, `AP`, `EU`) and `UK` for the United Kingdom (not `GB`). ISO 3166-2 codes stay official (`GB-ENG`); `RegionByCode` accepts both `GB-*` and `UK-*`.
+
+Subdivision data comes from [Debian iso-codes](https://salsa.debian.org/iso-codes-team/iso-codes) (`ISO 3166-2`, LGPL-2.1-or-later). See [`data/NOTICE`](data/NOTICE).
 
 ## Development
 
-Country tables are generated from [`data/countries.json`](data/countries.json):
+Country and region tables are generated from [`data/countries.json`](data/countries.json) and [`data/iso_3166-2.json`](data/iso_3166-2.json):
 
 ```bash
 make build-data   # or: make generate
@@ -71,7 +81,8 @@ make build-data   # or: make generate
 | `make test` | Unit tests |
 | `make lint` | `gofmt` check + `go vet` |
 | `make fmt` | Format sources |
-| `make build-data` | Regenerate `country_data.go` |
+| `make build-data` | Regenerate `country_data.go` and `region_data.go` |
+| `make export-data` | Dump countries or regions (`KIND=countries\|regions FORMAT=json\|csv`) |
 | `make bench` | Benchmarks |
 | `make cover` | Coverage report |
 | `make tidy` | `go mod tidy` |

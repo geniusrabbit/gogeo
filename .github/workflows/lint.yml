@@ -18,4 +18,4 @@ jobs:
       - name: Generated data is up to date
         run: |
           make build-data
-          git diff --exit-code -- country_data.go
+          git diff --exit-code -- country_data.go region_data.go

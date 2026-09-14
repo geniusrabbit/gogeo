@@ -1,0 +1,7 @@
+ISO 3166-2 subdivision data in iso_3166-2.json is taken from the Debian
+iso-codes project:
+
+  https://salsa.debian.org/iso-codes-team/iso-codes
+
+Copyright (C) 2001-2024 iso-codes contributors
+License: LGPL-2.1-or-later
