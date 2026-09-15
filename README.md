@@ -50,6 +50,11 @@ func main() {
     // Official ISO uses GB-*; gogeo country code is UK
     eng := gogeo.RegionByCode("UK-ENG")
     fmt.Println(eng.Code(), eng.Name) // GB-ENG England
+
+    near := gogeo.RegionByLatLng(42.51, 1.52)
+    fmt.Println(near.Code(), near.Name)
+
+    _ = us.NearestRegion(34.05, -118.25)
 }
 ```
 
@@ -66,11 +71,11 @@ Lists on `Country` are methods over packed tables: `Currency()`, `Languages()`, 
 
 The dataset includes GeoIP-style extras (`A1`, `A2`, `O1`, `AP`, `EU`) and `UK` for the United Kingdom (not `GB`). ISO 3166-2 codes stay official (`GB-ENG`); `RegionByCode` accepts both `GB-*` and `UK-*`.
 
-Subdivision data comes from [Debian iso-codes](https://salsa.debian.org/iso-codes-team/iso-codes) (`ISO 3166-2`, LGPL-2.1-or-later). See [`data/NOTICE`](data/NOTICE).
+Subdivision data is merged from [Debian iso-codes](https://salsa.debian.org/iso-codes-team/iso-codes) (LGPL-2.1-or-later) and [oodavid/iso-3166-2](https://github.com/oodavid/iso-3166-2) centroids. See [`data/NOTICE`](data/NOTICE) and [`data/regions.json`](data/regions.json). `Region.Name` is English when available.
 
 ## Development
 
-Country and region tables are generated from [`data/countries.json`](data/countries.json) and [`data/iso_3166-2.json`](data/iso_3166-2.json):
+Country and region tables are generated from [`data/countries.json`](data/countries.json) and merged [`data/regions.json`](data/regions.json):
 
 ```bash
 make build-data   # or: make generate
@@ -81,7 +86,8 @@ make build-data   # or: make generate
 | `make test` | Unit tests |
 | `make lint` | `gofmt` check + `go vet` |
 | `make fmt` | Format sources |
-| `make build-data` | Regenerate `country_data.go` and `region_data.go` |
+| `make merge-data` | Merge debian + oodavid into `data/regions.json` |
+| `make build-data` | Merge sources and regenerate Go tables |
 | `make export-data` | Dump countries or regions (`KIND=countries\|regions FORMAT=json\|csv`) |
 | `make bench` | Benchmarks |
 | `make cover` | Coverage report |

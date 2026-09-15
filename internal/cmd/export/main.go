@@ -88,7 +88,7 @@ func exportRegions(format string) error {
 	case "csv":
 		wr := csv.NewWriter(os.Stdout)
 		if err := wr.Write([]string{
-			"id", "code", "name", "type", "country", "parent",
+			"id", "code", "name", "names", "type", "country", "parent", "lat", "lng",
 		}); err != nil {
 			return err
 		}
@@ -98,9 +98,14 @@ func exportRegions(format string) error {
 			if p := r.Parent(); p != nil {
 				parent = p.Code()
 			}
+			lat, lng := "", ""
+			if r.HasCoordinates() {
+				lat = fmt.Sprintf("%f", r.Coordinates.Lat)
+				lng = fmt.Sprintf("%f", r.Coordinates.Lon)
+			}
 			if err := wr.Write([]string{
-				strconv.Itoa(int(r.ID)), r.Code(), r.Name, r.Type(),
-				r.Country().ISO2(), parent,
+				strconv.Itoa(int(r.ID)), r.Code(), r.Name, strings.Join(r.Names(), "|"),
+				r.Type(), r.Country().ISO2(), parent, lat, lng,
 			}); err != nil {
 				return err
 			}
@@ -113,12 +118,15 @@ func exportRegions(format string) error {
 }
 
 type regionJSON struct {
-	ID      uint16 `json:"id"`
-	Code    string `json:"code,omitempty"`
-	Name    string `json:"name,omitempty"`
-	Type    string `json:"type,omitempty"`
-	Country string `json:"country,omitempty"`
-	Parent  string `json:"parent,omitempty"`
+	ID      uint16   `json:"id"`
+	Code    string   `json:"code,omitempty"`
+	Name    string   `json:"name,omitempty"`
+	Names   []string `json:"names,omitempty"`
+	Type    string   `json:"type,omitempty"`
+	Country string   `json:"country,omitempty"`
+	Parent  string   `json:"parent,omitempty"`
+	Lat     *float32 `json:"lat,omitempty"`
+	Lng     *float32 `json:"lng,omitempty"`
 }
 
 func newRegionJSON(r *gogeo.Region) regionJSON {
@@ -126,11 +134,16 @@ func newRegionJSON(r *gogeo.Region) regionJSON {
 		ID:      r.ID,
 		Code:    r.Code(),
 		Name:    r.Name,
+		Names:   r.Names(),
 		Type:    r.Type(),
 		Country: r.Country().ISO2(),
 	}
 	if p := r.Parent(); p != nil {
 		out.Parent = p.Code()
+	}
+	if r.HasCoordinates() {
+		lat, lng := r.Coordinates.Lat, r.Coordinates.Lon
+		out.Lat, out.Lng = &lat, &lng
 	}
 	return out
 }

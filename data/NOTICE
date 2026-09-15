@@ -1,7 +1,10 @@
-ISO 3166-2 subdivision data in iso_3166-2.json is taken from the Debian
-iso-codes project:
+ISO 3166-2 subdivision data is merged from:
 
-  https://salsa.debian.org/iso-codes-team/iso-codes
+1. Debian iso-codes (codes, English names, types, parents)
+   https://salsa.debian.org/iso-codes-team/iso-codes
+   License: LGPL-2.1-or-later
 
-Copyright (C) 2001-2024 iso-codes contributors
-License: LGPL-2.1-or-later
+2. oodavid/iso-3166-2 (centroids lat/lng, additional names)
+   https://github.com/oodavid/iso-3166-2
+
+The merged dataset is data/regions.json.

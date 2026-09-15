@@ -3,19 +3,23 @@ PKG          := ./...
 COVERPROFILE := coverage.out
 DATA_SRC       := data/countries.json
 DATA_OUT       := country_data.go
-REGION_SRC     := data/iso_3166-2.json
+REGION_DEBIAN  := data/iso_3166-2.json
+REGION_OODAVID := data/oodavid_iso_3166_2.js
+REGION_SRC     := data/regions.json
 REGION_OUT     := region_data.go
 GEN_COUNTRIES  := ./internal/cmd/gencountries
+GEN_MERGE      := ./internal/cmd/mergerregions
 GEN_REGIONS    := ./internal/cmd/genregions
 
-.PHONY: help test lint fmt vet build-data generate export-data bench cover tidy clean
+.PHONY: help test lint fmt vet merge-data build-data generate export-data bench cover tidy clean
 
 help:
 	@echo "Targets:"
 	@echo "  test        Run unit tests"
 	@echo "  lint        gofmt check + go vet"
 	@echo "  fmt         Format Go sources"
-	@echo "  build-data  Regenerate country and region tables"
+	@echo "  merge-data  Merge debian + oodavid into data/regions.json"
+	@echo "  build-data  Merge sources and regenerate Go tables"
 	@echo "  generate    Alias for build-data (go generate)"
 	@echo "  export-data Dump countries or regions (KIND=countries|regions FORMAT=json|csv)"
 	@echo "  bench       Run benchmarks"
@@ -40,7 +44,10 @@ vet:
 fmt:
 	gofmt -w .
 
-build-data:
+merge-data:
+	$(GO) run $(GEN_MERGE) -debian $(REGION_DEBIAN) -oodavid $(REGION_OODAVID) -out $(REGION_SRC)
+
+build-data: merge-data
 	$(GO) run $(GEN_COUNTRIES) -src $(DATA_SRC) -out $(DATA_OUT)
 	$(GO) run $(GEN_REGIONS) -src $(REGION_SRC) -countries $(DATA_SRC) -out $(REGION_OUT)
 

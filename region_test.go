@@ -142,6 +142,47 @@ func TestRegionCodeJSONSQL(t *testing.T) {
 	}
 }
 
+func TestRegionCoordinates(t *testing.T) {
+	ad := RegionByCode("AD-07")
+	if !ad.HasCoordinates() || ad.Coordinates.Lat == 0 || ad.Coordinates.Lon == 0 {
+		t.Fatalf("AD-07 coords = %+v has=%v", ad.Coordinates, ad.HasCoordinates())
+	}
+	ca := RegionByCode("US-CA")
+	if !ca.HasCoordinates() {
+		t.Fatal("US-CA should have coordinates")
+	}
+	if names := ca.Names(); len(names) == 0 || names[0] != ca.Name {
+		t.Fatalf("US-CA Names() = %v, Name=%q", names, ca.Name)
+	}
+	if ca.Name != "California" {
+		t.Fatalf("US-CA Name = %q, want English default", ca.Name)
+	}
+}
+
+func TestRegionByLatLng(t *testing.T) {
+	ad := RegionByCode("AD-07")
+	got := RegionByLatLng(ad.Coordinates.Lat, ad.Coordinates.Lon)
+	if got.Country().ISO2() != "AD" {
+		t.Fatalf("nearest Andorra = %s %s", got.Code(), got.Country().ISO2())
+	}
+
+	ca := RegionByCode("US-CA")
+	near := CountryByCode2("US").NearestRegion(ca.Coordinates.Lat, ca.Coordinates.Lon)
+	if near.Country().ISO2() != "US" {
+		t.Fatalf("US nearest left the country: %s %s", near.Code(), near.Country().ISO2())
+	}
+	if !near.HasCoordinates() {
+		t.Fatal("US nearest has no coordinates")
+	}
+
+	if RegionByCode("**").HasCoordinates() {
+		t.Fatal("undefined region must not have coordinates")
+	}
+	if CountryByCode2("**").NearestRegion(0, 0).Code() != UndefinedRegionISO3166 {
+		t.Fatal("undefined country nearest must be undefined")
+	}
+}
+
 func TestRegionAllocs(t *testing.T) {
 	if n := testing.AllocsPerRun(1000, func() { _ = RegionByCode("US-CA") }); n != 0 {
 		t.Errorf("RegionByCode allocs = %v, want 0", n)
@@ -155,6 +196,10 @@ func TestRegionAllocs(t *testing.T) {
 	}
 	if n := testing.AllocsPerRun(1000, func() { _, _ = rc.MarshalJSON() }); n > 1 {
 		t.Errorf("RegionCode.MarshalJSON allocs = %v, want <= 1", n)
+	}
+	ad := RegionByCode("AD-07")
+	if n := testing.AllocsPerRun(200, func() { _ = RegionByLatLng(ad.Coordinates.Lat, ad.Coordinates.Lon) }); n != 0 {
+		t.Errorf("RegionByLatLng allocs = %v, want 0", n)
 	}
 }
 
@@ -182,6 +227,17 @@ func BenchmarkCountryRegions(b *testing.B) {
 	if len(list) > 0 {
 		benchRegion = &list[0]
 	}
+}
+
+func BenchmarkRegionByLatLng(b *testing.B) {
+	ad := RegionByCode("AD-07")
+	lat, lng := ad.Coordinates.Lat, ad.Coordinates.Lon
+	b.ReportAllocs()
+	var r *Region
+	for i := 0; i < b.N; i++ {
+		r = RegionByLatLng(lat, lng)
+	}
+	benchRegion = r
 }
 
 func BenchmarkRegionCodeMarshalJSON(b *testing.B) {

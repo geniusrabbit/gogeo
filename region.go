@@ -1,19 +1,23 @@
 package gogeo
 
-//go:generate go run ./internal/cmd/genregions -src data/iso_3166-2.json -countries data/countries.json -out region_data.go
+//go:generate go run ./internal/cmd/genregions -src data/regions.json -countries data/countries.json -out region_data.go
 
 // Undefined ISO 3166-2 code.
 const UndefinedRegionISO3166 = "**-**"
 
 // Region is a compact ISO 3166-2 subdivision record.
 type Region struct {
-	ID      uint16
-	Name    string
-	parent  uint16
-	country uint8
-	typeID  uint8
-	sufN    uint8
-	suffix  [3]byte
+	ID          uint16
+	Name        string
+	Coordinates Coordinates
+	parent      uint16
+	country     uint8
+	typeID      uint8
+	sufN        uint8
+	hasCoord    uint8
+	suffix      [3]byte
+	nameOff     uint16
+	nameN       uint8
 }
 
 // Code returns the interned ISO 3166-2 code (for example "US-CA").
@@ -24,6 +28,19 @@ func (r *Region) Code() string {
 // Type returns the interned subdivision type (State, Province, Parish, ...).
 func (r *Region) Type() string {
 	return regionTypes[r.typeID]
+}
+
+// Names returns the default name first, then unique alternatives.
+func (r *Region) Names() []string {
+	if r.nameN == 0 {
+		return nil
+	}
+	return regionNamesTable[r.nameOff : r.nameOff+uint16(r.nameN)]
+}
+
+// HasCoordinates reports whether the region has a known centroid.
+func (r *Region) HasCoordinates() bool {
+	return r.hasCoord != 0
 }
 
 // Country returns the parent country. GB subdivisions resolve to UK.

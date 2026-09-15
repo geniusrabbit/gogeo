@@ -1,6 +1,9 @@
 package gogeo
 
-import "bytes"
+import (
+	"bytes"
+	"math"
+)
 
 type regionRange struct {
 	off uint16
@@ -65,4 +68,47 @@ func lookupRegionSuffix(rng regionRange, suf string) *Region {
 		}
 	}
 	return &regions[0]
+}
+
+// RegionByLatLng returns the nearest region with coordinates, or undefined.
+func RegionByLatLng(lat, lng float32) *Region {
+	return nearestRegion(lat, lng, 0, false)
+}
+
+// NearestRegion returns the nearest subdivision of this country, or undefined.
+func (c *Country) NearestRegion(lat, lng float32) *Region {
+	if c == nil || c.ID == 0 {
+		return &regions[0]
+	}
+	return nearestRegion(lat, lng, c.ID, true)
+}
+
+func nearestRegion(lat, lng float32, country uint8, filterCountry bool) *Region {
+	best := uint16(0)
+	bestD := float32(math.MaxFloat32)
+	found := false
+	for _, id := range geoRegionIDs {
+		r := &regions[id]
+		if filterCountry && r.country != country {
+			continue
+		}
+		d := dist2(lat, lng, r.Coordinates.Lat, r.Coordinates.Lon)
+		if !found || d < bestD {
+			bestD = d
+			best = id
+			found = true
+		}
+	}
+	if !found {
+		return &regions[0]
+	}
+	return &regions[best]
+}
+
+func dist2(lat1, lng1, lat2, lng2 float32) float32 {
+	const deg = float32(math.Pi / 180)
+	dlat := (lat2 - lat1) * deg
+	mean := (lat1 + lat2) * (deg * 0.5)
+	dlon := (lng2 - lng1) * deg * float32(math.Cos(float64(mean)))
+	return dlat*dlat + dlon*dlon
 }
