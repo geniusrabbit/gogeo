@@ -16,7 +16,7 @@ GEN_REGIONS    := ./internal/cmd/genregions
 help:
 	@echo "Targets:"
 	@echo "  test        Run unit tests"
-	@echo "  lint        gofmt check + go vet"
+	@echo "  lint        go vet + golangci-lint"
 	@echo "  fmt         Format Go sources"
 	@echo "  merge-data  Merge debian + oodavid into data/regions.json"
 	@echo "  build-data  Merge sources and regenerate Go tables"
@@ -31,12 +31,7 @@ test:
 	$(GO) test -count=1 $(PKG)
 
 lint: vet
-	@unformatted=$$(gofmt -l .); \
-	if [ -n "$$unformatted" ]; then \
-		echo "gofmt needed:"; \
-		echo "$$unformatted"; \
-		exit 1; \
-	fi
+	golangci-lint run -v ./...
 
 vet:
 	$(GO) vet $(PKG)

@@ -75,7 +75,7 @@ func main() {
 	}
 	formatted, err := format.Source(generated)
 	if err != nil {
-		os.Stderr.Write(generated)
+		_, _ = os.Stderr.Write(generated)
 		fatal(err)
 	}
 	if err := os.WriteFile(*out, formatted, 0644); err != nil {

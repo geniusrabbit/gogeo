@@ -203,10 +203,7 @@ func TestRegionAllocs(t *testing.T) {
 	}
 }
 
-var (
-	benchRegion *Region
-	benchRC     RegionCode
-)
+var benchRegion *Region
 
 func BenchmarkRegionByCode(b *testing.B) {
 	b.ReportAllocs()
