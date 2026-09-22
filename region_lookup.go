@@ -22,7 +22,8 @@ func RegionByID(id uint16) *Region {
 }
 
 // RegionByCode returns the region for an ISO 3166-2 code (for example "US-CA").
-// "GB-*" and "UK-*" resolve to the same United Kingdom subdivisions.
+// Hyphenated and compact forms are equivalent ("NL-ZH" and "NLZH").
+// "GB-*" and "UK-*" resolve to the same United Kingdom subdivisions (country code GB).
 // Unknown codes resolve to the undefined region (never nil).
 func RegionByCode(code string) *Region {
 	b0, b1, suf, ok := parseRegionCode(code)
@@ -36,13 +37,19 @@ func RegionByCode(code string) *Region {
 }
 
 func parseRegionCode(code string) (b0, b1 byte, suf string, ok bool) {
-	if len(code) < 4 || len(code) > 6 || code[2] != '-' {
-		return 0, 0, "", false
+	n := len(code)
+	if n < 3 || n > 6 {
+		return
 	}
-	b0, b1 = code[0], code[1]
-	suf = code[3:]
+	if n >= 4 && code[2] == '-' {
+		b0, b1, suf = code[0], code[1], code[3:]
+	} else if n <= 5 {
+		b0, b1, suf = code[0], code[1], code[2:]
+	} else {
+		return
+	}
 	if len(suf) == 0 || len(suf) > 3 {
-		return 0, 0, "", false
+		return
 	}
 	return b0, b1, suf, true
 }

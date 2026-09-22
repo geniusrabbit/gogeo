@@ -13,7 +13,7 @@ func TestCountryByCode2(t *testing.T) {
 	if us.Continent() != "NA" {
 		t.Fatalf("US continent = %q", us.Continent())
 	}
-	if got := CountryByCode2Bytes(Code2{'U', 'S'}); got != us {
+	if got := CountryByCode2Bytes(CountryCode2{'U', 'S'}); got != us {
 		t.Fatalf("bytes lookup mismatch")
 	}
 	if got := CountryByID(us.ID); got != us {

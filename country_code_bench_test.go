@@ -7,7 +7,7 @@ import (
 
 var (
 	benchCountry *Country
-	benchCode    Code2
+	benchCode    CountryCode2
 	benchString  string
 	benchBytes   []byte
 )
@@ -22,7 +22,7 @@ func BenchmarkCountryByCode2(b *testing.B) {
 }
 
 func BenchmarkCountryByCode2Bytes(b *testing.B) {
-	code := Code2{'U', 'S'}
+	code := CountryCode2{'U', 'S'}
 	b.ReportAllocs()
 	var c *Country
 	for i := 0; i < b.N; i++ {
@@ -42,7 +42,7 @@ func BenchmarkCountryByCode3(b *testing.B) {
 
 func BenchmarkCountryCode2ByStringISO2(b *testing.B) {
 	b.ReportAllocs()
-	var cc Code2
+	var cc CountryCode2
 	for i := 0; i < b.N; i++ {
 		cc = CountryCode2ByString("US")
 	}
@@ -51,15 +51,15 @@ func BenchmarkCountryCode2ByStringISO2(b *testing.B) {
 
 func BenchmarkCountryCode2ByStringISO3(b *testing.B) {
 	b.ReportAllocs()
-	var cc Code2
+	var cc CountryCode2
 	for i := 0; i < b.N; i++ {
 		cc = CountryCode2ByString("USA")
 	}
 	benchCode = cc
 }
 
-func BenchmarkCode2ISO2(b *testing.B) {
-	cc := Code2{'U', 'S'}
+func BenchmarkCountryCodeISO2(b *testing.B) {
+	cc := CountryCode2{'U', 'S'}
 	b.ReportAllocs()
 	var s string
 	for i := 0; i < b.N; i++ {
@@ -68,8 +68,8 @@ func BenchmarkCode2ISO2(b *testing.B) {
 	benchString = s
 }
 
-func BenchmarkCode2ISO3(b *testing.B) {
-	cc := Code2{'U', 'S'}
+func BenchmarkCountryCodeISO3(b *testing.B) {
+	cc := CountryCode2{'U', 'S'}
 	b.ReportAllocs()
 	var s string
 	for i := 0; i < b.N; i++ {
@@ -78,8 +78,8 @@ func BenchmarkCode2ISO3(b *testing.B) {
 	benchString = s
 }
 
-func BenchmarkCode2MarshalJSON(b *testing.B) {
-	cc := Code2{'U', 'S'}
+func BenchmarkCountryCodeMarshalJSON(b *testing.B) {
+	cc := CountryCode2{'U', 'S'}
 	b.ReportAllocs()
 	var data []byte
 	for i := 0; i < b.N; i++ {
@@ -88,8 +88,8 @@ func BenchmarkCode2MarshalJSON(b *testing.B) {
 	benchBytes = data
 }
 
-func BenchmarkCode2Value(b *testing.B) {
-	cc := Code2{'U', 'S'}
+func BenchmarkCountryCodeValue(b *testing.B) {
+	cc := CountryCode2{'U', 'S'}
 	b.ReportAllocs()
 	var s string
 	for i := 0; i < b.N; i++ {
@@ -99,15 +99,15 @@ func BenchmarkCode2Value(b *testing.B) {
 	benchString = s
 }
 
-func TestCode2Allocs(t *testing.T) {
-	cc := Code2{'U', 'S'}
+func TestCountryCodeAllocs(t *testing.T) {
+	cc := CountryCode2{'U', 'S'}
 	if n := testing.AllocsPerRun(1000, func() { _ = CountryByCode2("US") }); n != 0 {
 		t.Errorf("CountryByCode2 allocs = %v, want 0", n)
 	}
 	if n := testing.AllocsPerRun(1000, func() { _ = cc.ISO2() }); n != 0 {
 		t.Errorf("ISO2 allocs = %v, want 0", n)
 	}
-	unknown := Code2{'-', '-'}
+	unknown := CountryCode2{'-', '-'}
 	if n := testing.AllocsPerRun(1000, func() { _ = unknown.ISO2() }); n != 0 {
 		t.Errorf("ISO2(unknown) allocs = %v, want 0", n)
 	}

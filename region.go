@@ -43,7 +43,7 @@ func (r *Region) HasCoordinates() bool {
 	return r.hasCoord != 0
 }
 
-// Country returns the parent country. GB subdivisions resolve to UK.
+// Country returns the parent country. GB subdivisions resolve to GB.
 // Never nil.
 func (r *Region) Country() *Country {
 	return &countries[r.country]

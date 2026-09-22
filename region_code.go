@@ -27,8 +27,8 @@ func (rc RegionCode) ISO3166() string {
 	return regionCodes[rc.clamp()]
 }
 
-// Country returns the library country code (GB subdivisions → UK).
-func (rc RegionCode) Country() Code2 {
+// Country returns the library country code (GB subdivisions → GB).
+func (rc RegionCode) Country() CountryCode2 {
 	return regions[rc.clamp()].Country().Code2
 }
 

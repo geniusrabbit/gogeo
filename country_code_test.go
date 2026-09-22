@@ -8,7 +8,7 @@ import (
 
 func Test_JSONEncodingDecoding(t *testing.T) {
 	type object struct {
-		Code2 Code2 `json:"code2"`
+		Code2 CountryCode2 `json:"code2"`
 	}
 
 	var tests = []struct {
@@ -74,6 +74,10 @@ func Test_CountryCode2ByString(t *testing.T) {
 			resultCode3: "GBR",
 		},
 		{
+			code:        "GB",
+			resultCode3: "GBR",
+		},
+		{
 			code:        "GGY",
 			resultCode3: "GGY",
 		},
@@ -86,42 +90,43 @@ func Test_CountryCode2ByString(t *testing.T) {
 	}
 }
 
-func Test_Code2ISO2(t *testing.T) {
+func Test_CountryCodeISO2(t *testing.T) {
 	var tests = []struct {
-		cc   Code2
+		cc   CountryCode2
 		want string
 	}{
-		{Code2{'U', 'S'}, "US"},
-		{Code2{'U', 'K'}, "UK"},
-		{Code2{'A', '1'}, "A1"},
+		{CountryCode2{'U', 'S'}, "US"},
+		{CountryCode2{'G', 'B'}, "GB"},
+		{CountryCode2{'U', 'K'}, "GB"},
+		{CountryCode2{'A', '1'}, "A1"},
 		{UndefinedCountryCode2, UndefinedCountryCodeISO2},
-		{Code2{'-', '-'}, UndefinedCountryCodeISO2},
-		{Code2{'X', 'Y'}, UndefinedCountryCodeISO2},
-		{Code2{'u', 's'}, UndefinedCountryCodeISO2},
+		{CountryCode2{'-', '-'}, UndefinedCountryCodeISO2},
+		{CountryCode2{'X', 'Y'}, UndefinedCountryCodeISO2},
+		{CountryCode2{'u', 's'}, UndefinedCountryCodeISO2},
 	}
 
 	for _, test := range tests {
 		if got := test.cc.ISO2(); got != test.want {
-			t.Errorf("Code2(%q).ISO2() = %q, want %q", string(test.cc[:]), got, test.want)
+			t.Errorf("CountryCode(%q).ISO2() = %q, want %q", string(test.cc[:]), got, test.want)
 		}
 		if got := test.cc.String(); got != test.want {
-			t.Errorf("Code2(%q).String() = %q, want %q", string(test.cc[:]), got, test.want)
+			t.Errorf("CountryCode(%q).String() = %q, want %q", string(test.cc[:]), got, test.want)
 		}
 	}
 }
 
-func Test_Code2Scan(t *testing.T) {
-	var cc Code2
+func Test_CountryCodeScan(t *testing.T) {
+	var cc CountryCode2
 	if err := cc.Scan([]byte("US")); err != nil {
 		t.Fatalf("scan bytes: %v", err)
 	}
-	if cc != (Code2{'U', 'S'}) {
+	if cc != (CountryCode2{'U', 'S'}) {
 		t.Fatalf("scan bytes got %q", cc)
 	}
 	if err := cc.Scan("DE"); err != nil {
 		t.Fatalf("scan string: %v", err)
 	}
-	if cc != (Code2{'D', 'E'}) {
+	if cc != (CountryCode2{'D', 'E'}) {
 		t.Fatalf("scan string got %q", cc)
 	}
 	if err := cc.Scan([]byte("USA")); !errors.Is(err, ErrCode2InvalidValueSize) {

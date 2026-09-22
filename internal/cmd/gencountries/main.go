@@ -140,7 +140,7 @@ func build(srcPath string, list []countryJSON) ([]byte, error) {
 			native = c.Name
 		}
 
-		fmt.Fprintf(&buf, "\t{ID: %d, Code2: Code2{%s}, Name: %s, Native: %s, Capital: %s, Coordinates: Coordinates{Lat: %s, Lon: %s}, continent: %d, currN: %d, langN: %d, phoneN: %d, zoneN: %d, code3: [3]byte{%s}, currOff: %d, langOff: %d, phoneOff: %d, zoneOff: %d},\n",
+		fmt.Fprintf(&buf, "\t{ID: %d, Code2: CountryCode2{%s}, Name: %s, Native: %s, Capital: %s, Coordinates: Coordinates{Lat: %s, Lon: %s}, continent: %d, currN: %d, langN: %d, phoneN: %d, zoneN: %d, code3: [3]byte{%s}, currOff: %d, langOff: %d, phoneOff: %d, zoneOff: %d},\n",
 			c.ID,
 			bytesLit([]byte(c.Code2)),
 			strconv.Quote(c.Name),
@@ -155,6 +155,11 @@ func build(srcPath string, list []countryJSON) ([]byte, error) {
 		)
 	}
 	buf.WriteString("}\n\n")
+
+	// UK is an exceptional reservation; lookups resolve to the official GB record.
+	if id := code2AZ['G'-'A']['B'-'A']; id != 0 {
+		code2AZ['U'-'A']['K'-'A'] = id
+	}
 
 	writeStringTable(&buf, "currencyTable", currencies)
 	writeStringTable(&buf, "languageTable", languages)

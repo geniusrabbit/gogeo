@@ -30,7 +30,7 @@ type Coordinates struct {
 // package-level packed tables and exposed via methods.
 type Country struct {
 	ID          uint8
-	Code2       Code2
+	Code2       CountryCode2
 	Name        string
 	Native      string
 	Capital     string

@@ -5,7 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/geniusrabbit/gogeo)](https://goreportcard.com/report/github.com/geniusrabbit/gogeo)
 [![Go Reference](https://pkg.go.dev/badge/github.com/geniusrabbit/gogeo.svg)](https://pkg.go.dev/github.com/geniusrabbit/gogeo)
 
-Static country, continent, and ISO 3166-2 region data with O(1) country lookups, packed region tables, and `Code2` / `RegionCode` types for JSON and SQL.
+Static country, continent, and ISO 3166-2 region data with O(1) country lookups, packed region tables, and `CountryCode2` / `RegionCode` types for JSON and SQL.
 
 License: Apache 2.0
 
@@ -34,12 +34,12 @@ func main() {
     us := gogeo.CountryByCode2("US")
     fmt.Println(us.Name, us.ISO3(), us.Continent(), us.Currency())
 
-    // ISO-2 or ISO-3 → Code2
+    // ISO-2 or ISO-3 → CountryCode2
     cc := gogeo.CountryCode2ByString("USA")
     fmt.Println(cc.ISO2(), cc.ISO3()) // US USA
 
-    // Zero-alloc lookup when you already have Code2
-    _ = gogeo.CountryByCode2Bytes(gogeo.Code2{'D', 'E'})
+    // Zero-alloc lookup when you already have CountryCode2
+    _ = gogeo.CountryByCode2Bytes(gogeo.CountryCode2{'D', 'E'})
 
     eu := gogeo.ContinentByCode2("EU")
     fmt.Println(eu.Name)
@@ -47,7 +47,7 @@ func main() {
     ca := gogeo.RegionByCode("US-CA")
     fmt.Println(ca.Name, ca.Type(), ca.Country().Name) // California State United States
 
-    // Official ISO uses GB-*; gogeo country code is UK
+    // UK is an alias; the country code is GB
     eng := gogeo.RegionByCode("UK-ENG")
     fmt.Println(eng.Code(), eng.Name) // GB-ENG England
 
@@ -58,18 +58,18 @@ func main() {
 }
 ```
 
-`Code2` and `RegionCode` implement `json.Marshaler` / `Unmarshaler`, `driver.Valuer`, and `sql.Scanner`:
+`CountryCode2` and `RegionCode` implement `json.Marshaler` / `Unmarshaler`, `driver.Valuer`, and `sql.Scanner`:
 
 ```go
 type User struct {
-    Country gogeo.Code2      `json:"country" db:"country_code"`
+    Country gogeo.CountryCode2 `json:"country" db:"country_code"`
     Region  gogeo.RegionCode `json:"region" db:"region_code"`
 }
 ```
 
 Lists on `Country` are methods over packed tables: `Currency()`, `Languages()`, `Phones()`, `TimeZones()`, `Regions()`.
 
-The dataset includes GeoIP-style extras (`A1`, `A2`, `O1`, `AP`, `EU`) and `UK` for the United Kingdom (not `GB`). ISO 3166-2 codes stay official (`GB-ENG`); `RegionByCode` accepts both `GB-*` and `UK-*`.
+The dataset includes GeoIP-style extras (`A1`, `A2`, `O1`, `AP`, `EU`). The United Kingdom country code is `GB`; `UK` is an accepted alias for country and region lookup. ISO 3166-2 codes stay official (`GB-ENG`); `RegionByCode` accepts both `GB-*` and `UK-*`, and both hyphenated and compact forms (`NL-ZH` and `NLZH`).
 
 Subdivision data is merged from [Debian iso-codes](https://salsa.debian.org/iso-codes-team/iso-codes) (LGPL-2.1-or-later) and [oodavid/iso-3166-2](https://github.com/oodavid/iso-3166-2) centroids. See [`data/NOTICE`](data/NOTICE) and [`data/regions.json`](data/regions.json). `Region.Name` is English when available.
 
@@ -104,8 +104,8 @@ BenchmarkCountryByCode2Bytes-24          1.892 ns/op    0 B/op    0 allocs/op
 BenchmarkCountryByCode3-24               2.175 ns/op    0 B/op    0 allocs/op
 BenchmarkCountryCode2ByStringISO2-24     2.682 ns/op    0 B/op    0 allocs/op
 BenchmarkCountryCode2ByStringISO3-24     2.937 ns/op    0 B/op    0 allocs/op
-BenchmarkCode2ISO2-24                    2.315 ns/op    0 B/op    0 allocs/op
-BenchmarkCode2ISO3-24                    2.103 ns/op    0 B/op    0 allocs/op
-BenchmarkCode2MarshalJSON-24             4.318 ns/op    4 B/op    1 allocs/op
-BenchmarkCode2Value-24                   2.348 ns/op    0 B/op    0 allocs/op
+BenchmarkCountryCodeISO2-24              2.315 ns/op    0 B/op    0 allocs/op
+BenchmarkCountryCodeISO3-24              2.103 ns/op    0 B/op    0 allocs/op
+BenchmarkCountryCodeMarshalJSON-24       4.318 ns/op    4 B/op    1 allocs/op
+BenchmarkCountryCodeValue-24             2.348 ns/op    0 B/op    0 allocs/op
 ```

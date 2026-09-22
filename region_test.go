@@ -30,8 +30,18 @@ func TestRegionByCode(t *testing.T) {
 	if RegionByCode("") != undef || RegionByCode("US") != undef || RegionByCode("US-") != undef {
 		t.Fatalf("invalid codes must be undefined")
 	}
-	if RegionByCode("us-ca") != undef {
+	if RegionByCode("us-ca") != undef || RegionByCode("nlzh") != undef {
 		t.Fatalf("lookup must be case-sensitive")
+	}
+	for _, pair := range [][2]string{
+		{"NL-ZH", "NLZH"},
+		{"US-CA", "USCA"},
+		{"AD-07", "AD07"},
+	} {
+		hyphen, compact := RegionByCode(pair[0]), RegionByCode(pair[1])
+		if hyphen != compact || hyphen.Code() != pair[0] {
+			t.Fatalf("%s and %s: got %q and %q", pair[0], pair[1], hyphen.Code(), compact.Code())
+		}
 	}
 }
 
@@ -44,8 +54,14 @@ func TestRegionGBUKAlias(t *testing.T) {
 	if gb.Name != "England" || gb.Code() != "GB-ENG" {
 		t.Fatalf("England: name=%q code=%q", gb.Name, gb.Code())
 	}
-	if gb.Country().ISO2() != "UK" {
-		t.Fatalf("GB-ENG country = %q, want UK", gb.Country().ISO2())
+	if gb.Country().ISO2() != "GB" || gb.Country().Code2 != (CountryCode2{'G', 'B'}) {
+		t.Fatalf("GB-ENG country = %q %q, want GB", gb.Country().ISO2(), gb.Country().Code2)
+	}
+	if CountryByCode2("UK") != gb.Country() {
+		t.Fatal("UK must alias the GB country")
+	}
+	if RegionByCode("GBENG") != gb || RegionByCode("UKENG") != uk {
+		t.Fatalf("compact GBENG/UKENG must match hyphenated forms")
 	}
 }
 
@@ -73,9 +89,12 @@ func TestCountryRegions(t *testing.T) {
 		t.Fatal("US.Regions() missing US-CA")
 	}
 
-	uk := CountryByCode2("UK").Regions()
-	if len(uk) == 0 {
-		t.Fatal("UK.Regions() empty")
+	gb := CountryByCode2("GB").Regions()
+	if len(gb) == 0 {
+		t.Fatal("GB.Regions() empty")
+	}
+	if CountryByCode2("UK") != CountryByCode2("GB") {
+		t.Fatal("UK and GB must be the same country")
 	}
 	if CountryByCode2("**").Regions() != nil {
 		t.Fatal("undefined country must have no regions")
@@ -97,7 +116,7 @@ func TestRegionByID(t *testing.T) {
 
 func TestRegionCodeJSONSQL(t *testing.T) {
 	rc := RegionCodeByString("US-CA")
-	if rc.ISO3166() != "US-CA" || rc.Country() != (Code2{'U', 'S'}) {
+	if rc.ISO3166() != "US-CA" || rc.Country() != (CountryCode2{'U', 'S'}) {
 		t.Fatalf("RegionCode US-CA = %q country=%q", rc.ISO3166(), rc.Country())
 	}
 	if rc.Region() != RegionByCode("US-CA") {
@@ -116,7 +135,7 @@ func TestRegionCodeJSONSQL(t *testing.T) {
 	if err := json.Unmarshal([]byte(`"GB-ENG"`), &got); err != nil {
 		t.Fatal(err)
 	}
-	if got.ISO3166() != "GB-ENG" || got.Country() != (Code2{'U', 'K'}) {
+	if got.ISO3166() != "GB-ENG" || got.Country() != (CountryCode2{'G', 'B'}) {
 		t.Fatalf("unmarshal GB-ENG = %q country=%q", got.ISO3166(), got.Country())
 	}
 

@@ -27,7 +27,7 @@ func CountryByCode2(code string) *Country {
 
 // CountryByCode2Bytes is the allocation-free ISO-2 lookup.
 // Unknown codes resolve to the undefined country (never nil).
-func CountryByCode2Bytes(code Code2) *Country {
+func CountryByCode2Bytes(code CountryCode2) *Country {
 	return lookupCode2(code[0], code[1])
 }
 

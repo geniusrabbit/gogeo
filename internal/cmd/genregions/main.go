@@ -90,9 +90,6 @@ func loadCountries(path string) (map[string]uint8, error) {
 			out[c.Code2] = c.ID
 		}
 	}
-	if uk, ok := out["UK"]; ok {
-		out["GB"] = uk
-	}
 	return out, nil
 }
 
