@@ -104,6 +104,9 @@ func TestCountryCodeAllocs(t *testing.T) {
 	if n := testing.AllocsPerRun(1000, func() { _ = CountryByCode2("US") }); n != 0 {
 		t.Errorf("CountryByCode2 allocs = %v, want 0", n)
 	}
+	if n := testing.AllocsPerRun(1000, func() { _ = cc.ID() }); n != 0 {
+		t.Errorf("ID allocs = %v, want 0", n)
+	}
 	if n := testing.AllocsPerRun(1000, func() { _ = cc.ISO2() }); n != 0 {
 		t.Errorf("ISO2 allocs = %v, want 0", n)
 	}

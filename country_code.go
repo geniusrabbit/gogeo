@@ -35,6 +35,11 @@ func (cc CountryCode2) String() string {
 	return cc.ISO2()
 }
 
+// ID returns the interned country code, or 0 for undefined.
+func (cc CountryCode2) ID() uint8 {
+	return lookupCode2(cc[0], cc[1]).ID
+}
+
 // ISO2 returns the interned two-letter code for a known country, or "**".
 // Aliases resolve to the canonical code (UK → GB).
 func (cc CountryCode2) ISO2() string {

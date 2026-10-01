@@ -115,6 +115,34 @@ func Test_CountryCodeISO2(t *testing.T) {
 	}
 }
 
+func Test_CountryCodeID(t *testing.T) {
+	us := CountryByCode2("US")
+	gb := CountryByCode2("GB")
+	if us.ID == 0 || gb.ID == 0 {
+		t.Fatal("US and GB must have non-zero IDs")
+	}
+
+	var tests = []struct {
+		cc   CountryCode2
+		want uint8
+	}{
+		{CountryCode2{'U', 'S'}, us.ID},
+		{CountryCode2{'G', 'B'}, gb.ID},
+		{CountryCode2{'U', 'K'}, gb.ID},
+		{CountryCode2{'A', '1'}, CountryByCode2("A1").ID},
+		{UndefinedCountryCode2, 0},
+		{CountryCode2{'-', '-'}, 0},
+		{CountryCode2{'X', 'Y'}, 0},
+		{CountryCode2{'u', 's'}, 0},
+	}
+
+	for _, test := range tests {
+		if got := test.cc.ID(); got != test.want {
+			t.Errorf("CountryCode(%q).ID() = %d, want %d", string(test.cc[:]), got, test.want)
+		}
+	}
+}
+
 func Test_CountryCodeScan(t *testing.T) {
 	var cc CountryCode2
 	if err := cc.Scan([]byte("US")); err != nil {
