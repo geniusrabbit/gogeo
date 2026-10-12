@@ -1,6 +1,7 @@
 package gogeo
 
 import (
+	"math"
 	"strings"
 	"testing"
 )
@@ -89,6 +90,63 @@ func TestCountryMarshalJSON(t *testing.T) {
 		if !strings.Contains(s, want) {
 			t.Fatalf("json missing %s: %s", want, s)
 		}
+	}
+}
+
+func TestUTCOffset(t *testing.T) {
+	ad := CountryByCode2("AD")
+	zones := ad.TimeZones()
+	if len(zones) != 1 || zones[0].ZoneName != "Europe/Andorra" || zones[0].UTCOffset != 60 {
+		t.Fatalf("Andorra zones = %+v", zones)
+	}
+	if ad.AvgUTCOffset != zones[0].UTCOffset {
+		t.Fatalf("Andorra AvgUTCOffset = %d, want %d", ad.AvgUTCOffset, zones[0].UTCOffset)
+	}
+
+	us := CountryByCode2("US")
+	var sum int
+	var ny int16
+	foundNY := false
+	for _, z := range us.TimeZones() {
+		sum += int(z.UTCOffset)
+		if z.ZoneName == "America/New_York" {
+			ny = z.UTCOffset
+			foundNY = true
+		}
+	}
+	if !foundNY || ny != -300 {
+		t.Fatalf("America/New_York = %d, found=%v", ny, foundNY)
+	}
+	wantAvg := int16(math.Round(float64(sum) / float64(len(us.TimeZones()))))
+	if us.AvgUTCOffset != wantAvg {
+		t.Fatalf("US AvgUTCOffset = %d, want %d", us.AvgUTCOffset, wantAvg)
+	}
+
+	np := CountryByCode2("NP").TimeZones()
+	if len(np) != 1 || np[0].ZoneName != "Asia/Katmandu" || np[0].UTCOffset != 345 {
+		t.Fatalf("Kathmandu = %+v", np)
+	}
+
+	var adelaide int16
+	foundAdelaide := false
+	for _, z := range CountryByCode2("AU").TimeZones() {
+		if z.ZoneName == "Australia/Adelaide" {
+			adelaide = z.UTCOffset
+			foundAdelaide = true
+		}
+	}
+	if !foundAdelaide || adelaide != 570 {
+		t.Fatalf("Australia/Adelaide = %d, found=%v", adelaide, foundAdelaide)
+	}
+
+	if got := RegionByCode("US-CA").UTCOffset; got != -480 {
+		t.Fatalf("US-CA UTCOffset = %d, want -480", got)
+	}
+	if got := RegionByCode("AD-07").UTCOffset; got != 60 {
+		t.Fatalf("AD-07 UTCOffset = %d, want 60", got)
+	}
+	if CountryByCode2("**").AvgUTCOffset != 0 || RegionByCode("??-XX").UTCOffset != 0 {
+		t.Fatal("unknown country and region offsets must be 0")
 	}
 }
 

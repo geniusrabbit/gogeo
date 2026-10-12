@@ -7,10 +7,13 @@ import (
 	"flag"
 	"fmt"
 	"go/format"
+	"math"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/geniusrabbit/gogeo/internal/utcoffset"
 )
 
 type regionsFile struct {
@@ -28,8 +31,19 @@ type regionJSON struct {
 }
 
 type countryJSON struct {
-	ID    uint8  `json:"id"`
-	Code2 string `json:"cc"`
+	ID    uint8    `json:"id"`
+	Code2 string   `json:"cc"`
+	Zones []tzJSON `json:"zones"`
+}
+
+type tzJSON struct {
+	ZoneName string  `json:"ZoneName"`
+	Lon      float64 `json:"Lon"`
+}
+
+type zoneOff struct {
+	lon    float64
+	offset int16
 }
 
 func main() {
@@ -42,11 +56,11 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
-	ccToID, err := loadCountries(*countries)
+	ccToID, zonesByCC, err := loadCountries(*countries)
 	if err != nil {
 		fatal(err)
 	}
-	generated, err := build(*src, items, ccToID)
+	generated, err := build(*src, items, ccToID, zonesByCC)
 	if err != nil {
 		fatal(err)
 	}
@@ -75,43 +89,52 @@ func loadRegions(path string) ([]regionJSON, error) {
 	return file.Regions, nil
 }
 
-func loadCountries(path string) (map[string]uint8, error) {
+func loadCountries(path string) (map[string]uint8, map[string][]zoneOff, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var list []countryJSON
 	if err := json.Unmarshal(raw, &list); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	out := make(map[string]uint8, len(list))
+	zones := make(map[string][]zoneOff, len(list))
 	for _, c := range list {
-		if c.Code2 != "" {
-			out[c.Code2] = c.ID
+		if c.Code2 == "" {
+			continue
+		}
+		out[c.Code2] = c.ID
+		for _, z := range c.Zones {
+			zones[c.Code2] = append(zones[c.Code2], zoneOff{
+				lon:    z.Lon,
+				offset: utcoffset.StandardOffset(z.ZoneName, z.Lon),
+			})
 		}
 	}
-	return out, nil
+	return out, zones, nil
 }
 
 type packedRegion struct {
-	id       uint16
-	name     string
-	alts     []string
-	code     string
-	cc       string
-	suffix   string
-	typ      string
-	parent   string
-	country  uint8
-	typeID   uint8
-	parentID uint16
-	lat, lng float32
-	hasCoord bool
-	nameOff  uint16
-	nameN    uint8
+	id        uint16
+	name      string
+	alts      []string
+	code      string
+	cc        string
+	suffix    string
+	typ       string
+	parent    string
+	country   uint8
+	typeID    uint8
+	parentID  uint16
+	lat, lng  float32
+	utcOffset int16
+	hasCoord  bool
+	nameOff   uint16
+	nameN     uint8
 }
 
-func build(srcPath string, items []regionJSON, ccToID map[string]uint8) ([]byte, error) {
+func build(srcPath string, items []regionJSON, ccToID map[string]uint8, zonesByCC map[string][]zoneOff) ([]byte, error) {
 	types := map[string]uint8{"": 0}
 	typeList := []string{""}
 
@@ -163,6 +186,7 @@ func build(srcPath string, items []regionJSON, ccToID map[string]uint8) ([]byte,
 			pr.lng = float32(*item.Lng)
 			pr.hasCoord = true
 		}
+		pr.utcOffset = regionUTC(zonesByCC[cc], pr.hasCoord, float64(pr.lng))
 		byCC[cc] = append(byCC[cc], pr)
 	}
 
@@ -246,11 +270,12 @@ func build(srcPath string, items []regionJSON, ccToID map[string]uint8) ([]byte,
 		if r.hasCoord {
 			has = 1
 		}
-		fmt.Fprintf(&buf, "\t{ID: %d, Name: %s, Coordinates: Coordinates{Lat: %s, Lon: %s}, parent: %d, country: %d, typeID: %d, sufN: %d, hasCoord: %d, suffix: [3]byte{%s}, nameOff: %d, nameN: %d},\n",
+		fmt.Fprintf(&buf, "\t{ID: %d, Name: %s, Coordinates: Coordinates{Lat: %s, Lon: %s}, UTCOffset: %d, parent: %d, country: %d, typeID: %d, sufN: %d, hasCoord: %d, suffix: [3]byte{%s}, nameOff: %d, nameN: %d},\n",
 			r.id,
 			strconv.Quote(r.name),
 			fmtFloat(r.lat),
 			fmtFloat(r.lng),
+			r.utcOffset,
 			r.parentID,
 			r.country,
 			r.typeID,
@@ -278,6 +303,44 @@ func build(srcPath string, items []regionJSON, ccToID map[string]uint8) ([]byte,
 	writeRanges(&buf, "iso2RegionRange", isoRanges(byCC))
 	writeCountryRanges(&buf, ccToID, byCC)
 	return buf.Bytes(), nil
+}
+
+func regionUTC(zones []zoneOff, hasCoord bool, lng float64) int16 {
+	if len(zones) == 0 {
+		return 0
+	}
+	if len(zones) == 1 || !hasCoord {
+		if len(zones) == 1 {
+			return zones[0].offset
+		}
+		return avgZoneOffset(zones)
+	}
+	usable := zones[:0:0]
+	for _, z := range zones {
+		if z.lon != 0 {
+			usable = append(usable, z)
+		}
+	}
+	if len(usable) == 0 {
+		usable = zones
+	}
+	best := usable[0]
+	bestD := math.Abs(usable[0].lon - lng)
+	for _, z := range usable[1:] {
+		if d := math.Abs(z.lon - lng); d < bestD {
+			best = z
+			bestD = d
+		}
+	}
+	return best.offset
+}
+
+func avgZoneOffset(zones []zoneOff) int16 {
+	var sum int
+	for _, z := range zones {
+		sum += int(z.offset)
+	}
+	return int16(math.Round(float64(sum) / float64(len(zones))))
 }
 
 func uniqueAlts(name string, names map[string]string) []string {

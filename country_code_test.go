@@ -140,6 +140,31 @@ func Test_CountryCodeID(t *testing.T) {
 		if got := test.cc.ID(); got != test.want {
 			t.Errorf("CountryCode(%q).ID() = %d, want %d", string(test.cc[:]), got, test.want)
 		}
+		if got := test.cc.Object(); got == nil || got.ID != test.want {
+			t.Errorf("CountryCode(%q).Object().ID = %v, want %d", string(test.cc[:]), got, test.want)
+		}
+	}
+}
+
+func Test_CountryCodeObject(t *testing.T) {
+	us := CountryCode2{'U', 'S'}.Object()
+	if us != CountryByCode2("US") || us.Name != "United States" {
+		t.Fatalf("US object = %v", us)
+	}
+
+	uk := CountryCode2{'U', 'K'}.Object()
+	if uk != CountryByCode2("GB") {
+		t.Fatalf("UK object = %v, want GB", uk)
+	}
+
+	for _, cc := range []CountryCode2{{'X', 'Y'}, UndefinedCountryCode2} {
+		got := cc.Object()
+		if got == nil || got.ID != 0 {
+			t.Fatalf("CountryCode(%q).Object() = %v, want undefined", string(cc[:]), got)
+		}
+		if got.ID != cc.ID() {
+			t.Fatalf("CountryCode(%q).Object().ID = %d, ID() = %d", string(cc[:]), got.ID, cc.ID())
+		}
 	}
 }
 

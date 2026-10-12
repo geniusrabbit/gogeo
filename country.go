@@ -15,10 +15,11 @@ const (
 	UndefinedCountryCodeISO3 = "***"
 )
 
-// TimeZone object
+// TimeZone object. UTCOffset is minutes east of UTC in standard time.
 type TimeZone struct {
-	ZoneName string
-	Lon      float32
+	ZoneName  string
+	Lon       float32
+	UTCOffset int16
 }
 
 // Coordinates object
@@ -29,12 +30,13 @@ type Coordinates struct {
 // Country is a compact country record. Variable-length lists are stored in
 // package-level packed tables and exposed via methods.
 type Country struct {
-	ID          uint8
-	Code2       CountryCode2
-	Name        string
-	Native      string
-	Capital     string
-	Coordinates Coordinates
+	ID           uint8
+	Code2        CountryCode2
+	Name         string
+	Native       string
+	Capital      string
+	Coordinates  Coordinates
+	AvgUTCOffset int16
 
 	continent uint8
 	currN     uint8
@@ -104,34 +106,36 @@ func (c *Country) TimeZones() []TimeZone {
 }
 
 type countryJSON struct {
-	ID          uint8       `json:"id"`
-	Code2       string      `json:"cc,omitempty"`
-	Code3       string      `json:"ccc,omitempty"`
-	Name        string      `json:"name,omitempty"`
-	Native      string      `json:"native,omitempty"`
-	Continent   string      `json:"continent,omitempty"`
-	Capital     string      `json:"capital,omitempty"`
-	Currency    []string    `json:"currency,omitempty"`
-	Languages   []string    `json:"langs,omitempty"`
-	Phones      []string    `json:"phones,omitempty"`
-	Coordinates Coordinates `json:"corrd,omitempty"`
-	TimeZones   []TimeZone  `json:"zones,omitempty"`
+	ID           uint8       `json:"id"`
+	Code2        string      `json:"cc,omitempty"`
+	Code3        string      `json:"ccc,omitempty"`
+	Name         string      `json:"name,omitempty"`
+	Native       string      `json:"native,omitempty"`
+	Continent    string      `json:"continent,omitempty"`
+	Capital      string      `json:"capital,omitempty"`
+	Currency     []string    `json:"currency,omitempty"`
+	Languages    []string    `json:"langs,omitempty"`
+	Phones       []string    `json:"phones,omitempty"`
+	Coordinates  Coordinates `json:"corrd,omitempty"`
+	TimeZones    []TimeZone  `json:"zones,omitempty"`
+	AvgUTCOffset int16       `json:"avgUTCOffset"`
 }
 
 // MarshalJSON encodes Country using the historical field names.
 func (c Country) MarshalJSON() ([]byte, error) {
 	return json.Marshal(countryJSON{
-		ID:          c.ID,
-		Code2:       c.ISO2(),
-		Code3:       c.ISO3(),
-		Name:        c.Name,
-		Native:      c.Native,
-		Continent:   c.Continent(),
-		Capital:     c.Capital,
-		Currency:    c.Currency(),
-		Languages:   c.Languages(),
-		Phones:      c.Phones(),
-		Coordinates: c.Coordinates,
-		TimeZones:   c.TimeZones(),
+		ID:           c.ID,
+		Code2:        c.ISO2(),
+		Code3:        c.ISO3(),
+		Name:         c.Name,
+		Native:       c.Native,
+		Continent:    c.Continent(),
+		Capital:      c.Capital,
+		Currency:     c.Currency(),
+		Languages:    c.Languages(),
+		Phones:       c.Phones(),
+		Coordinates:  c.Coordinates,
+		TimeZones:    c.TimeZones(),
+		AvgUTCOffset: c.AvgUTCOffset,
 	})
 }

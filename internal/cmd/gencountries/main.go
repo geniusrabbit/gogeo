@@ -7,14 +7,18 @@ import (
 	"flag"
 	"fmt"
 	"go/format"
+	"math"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/geniusrabbit/gogeo/internal/utcoffset"
 )
 
 type tzJSON struct {
 	ZoneName string  `json:"ZoneName"`
 	Lon      float64 `json:"Lon"`
+	Offset   int16
 }
 
 type coordJSON struct {
@@ -133,14 +137,19 @@ func build(srcPath string, list []countryJSON) ([]byte, error) {
 		currOff, currN := appendPacked(&currencies, c.Currency)
 		langOff, langN := appendPacked(&languages, c.Languages)
 		phoneOff, phoneN := appendPacked(&phones, c.Phones)
+		for j := range c.TimeZones {
+			z := &c.TimeZones[j]
+			z.Offset = utcoffset.StandardOffset(z.ZoneName, z.Lon)
+		}
 		zoneOff, zoneN := appendZones(&zones, c.TimeZones)
+		avg := avgOffset(c.TimeZones)
 
 		native := c.Native
 		if native == c.Name {
 			native = c.Name
 		}
 
-		fmt.Fprintf(&buf, "\t{ID: %d, Code2: CountryCode2{%s}, Name: %s, Native: %s, Capital: %s, Coordinates: Coordinates{Lat: %s, Lon: %s}, continent: %d, currN: %d, langN: %d, phoneN: %d, zoneN: %d, code3: [3]byte{%s}, currOff: %d, langOff: %d, phoneOff: %d, zoneOff: %d},\n",
+		fmt.Fprintf(&buf, "\t{ID: %d, Code2: CountryCode2{%s}, Name: %s, Native: %s, Capital: %s, Coordinates: Coordinates{Lat: %s, Lon: %s}, AvgUTCOffset: %d, continent: %d, currN: %d, langN: %d, phoneN: %d, zoneN: %d, code3: [3]byte{%s}, currOff: %d, langOff: %d, phoneOff: %d, zoneOff: %d},\n",
 			c.ID,
 			bytesLit([]byte(c.Code2)),
 			strconv.Quote(c.Name),
@@ -148,6 +157,7 @@ func build(srcPath string, list []countryJSON) ([]byte, error) {
 			strconv.Quote(c.Capital),
 			fmtFloat(c.Coordinates.Lat),
 			fmtFloat(c.Coordinates.Lon),
+			avg,
 			continentIDs[c.Continent],
 			currN, langN, phoneN, zoneN,
 			bytesLit(code3[:]),
@@ -167,7 +177,7 @@ func build(srcPath string, list []countryJSON) ([]byte, error) {
 
 	buf.WriteString("var timezoneTable = [...]TimeZone{\n")
 	for _, z := range zones {
-		fmt.Fprintf(&buf, "\t{%s, %s},\n", strconv.Quote(z.ZoneName), fmtFloat(z.Lon))
+		fmt.Fprintf(&buf, "\t{%s, %s, %d},\n", strconv.Quote(z.ZoneName), fmtFloat(z.Lon), z.Offset)
 	}
 	buf.WriteString("}\n\n")
 
@@ -205,6 +215,17 @@ func appendPacked(dst *[]string, values []string) (off uint16, n uint8) {
 	off = uint16(len(*dst))
 	*dst = append(*dst, values...)
 	return off, uint8(len(values))
+}
+
+func avgOffset(zones []tzJSON) int16 {
+	if len(zones) == 0 {
+		return 0
+	}
+	var sum int
+	for _, z := range zones {
+		sum += int(z.Offset)
+	}
+	return int16(math.Round(float64(sum) / float64(len(zones))))
 }
 
 func appendZones(dst *[]tzJSON, values []tzJSON) (off uint16, n uint8) {

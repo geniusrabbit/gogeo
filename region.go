@@ -10,6 +10,7 @@ type Region struct {
 	ID          uint16
 	Name        string
 	Coordinates Coordinates
+	UTCOffset   int16
 	parent      uint16
 	country     uint8
 	typeID      uint8
