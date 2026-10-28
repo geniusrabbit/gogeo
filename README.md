@@ -5,7 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/geniusrabbit/gogeo)](https://goreportcard.com/report/github.com/geniusrabbit/gogeo)
 [![Go Reference](https://pkg.go.dev/badge/github.com/geniusrabbit/gogeo.svg)](https://pkg.go.dev/github.com/geniusrabbit/gogeo)
 
-Static country, continent, and ISO 3166-2 region data with O(1) country lookups, packed region tables, and `CountryCode2` / `RegionCode` types for JSON and SQL.
+Static country, continent, and ISO 3166-2 region data with O(1) country lookups, packed region tables, and `CountryCode2` / `CountryID` / `RegionCode` types for JSON and SQL.
 
 License: Apache 2.0
 
@@ -34,9 +34,12 @@ func main() {
     us := gogeo.CountryByCode2("US")
     fmt.Println(us.Name, us.ISO3(), us.Continent(), us.Currency())
 
-    // ISO-2 or ISO-3 → CountryCode2
+    // ISO-2 or ISO-3 → CountryCode2 or CountryID
     cc := gogeo.CountryCode2ByString("USA")
-    fmt.Println(cc.ISO2(), cc.ISO3()) // US USA
+    fmt.Println(cc.ISO2(), cc.ISO3(), cc.Object().Name) // US USA United States
+
+    id := gogeo.CountryIDByString("GB")
+    fmt.Println(id.ISO2(), id.Code()) // GB GB
 
     // Zero-alloc lookup when you already have CountryCode2
     _ = gogeo.CountryByCode2Bytes(gogeo.CountryCode2{'D', 'E'})
@@ -46,6 +49,7 @@ func main() {
 
     ca := gogeo.RegionByCode("US-CA")
     fmt.Println(ca.Name, ca.Type(), ca.Country().Name) // California State United States
+    fmt.Println(ca.UTCOffset)                          // -480, standard minutes east of UTC
 
     // UK is an alias; the country code is GB
     eng := gogeo.RegionByCode("UK-ENG")
@@ -58,16 +62,17 @@ func main() {
 }
 ```
 
-`CountryCode2` and `RegionCode` implement `json.Marshaler` / `Unmarshaler`, `driver.Valuer`, and `sql.Scanner`:
+`CountryCode2`, `CountryID`, and `RegionCode` implement `json.Marshaler` / `Unmarshaler`, `driver.Valuer`, and `sql.Scanner`. `CountryID` is the country index in memory; JSON and SQL still store the ISO-2 string, same as `CountryCode2`.
 
 ```go
 type User struct {
-    Country gogeo.CountryCode2 `json:"country" db:"country_code"`
-    Region  gogeo.RegionCode `json:"region" db:"region_code"`
+    Country   gogeo.CountryCode2 `json:"country" db:"country_code"`
+    CountryID gogeo.CountryID    `json:"country_id" db:"country_id"`
+    Region    gogeo.RegionCode   `json:"region" db:"region_code"`
 }
 ```
 
-Lists on `Country` are methods over packed tables: `Currency()`, `Languages()`, `Phones()`, `TimeZones()`, `Regions()`.
+Lists on `Country` are methods over packed tables: `Currency()`, `Languages()`, `Phones()`, `TimeZones()`, `Regions()`. `TimeZone.UTCOffset` and `Region.UTCOffset` are standard-time minutes east of UTC (not the current DST offset). `Country.AvgUTCOffset` is the rounded mean of that country's zones.
 
 The dataset includes GeoIP-style extras (`A1`, `A2`, `O1`, `AP`, `EU`). The United Kingdom country code is `GB`; `UK` is an accepted alias for country and region lookup. ISO 3166-2 codes stay official (`GB-ENG`); `RegionByCode` accepts both `GB-*` and `UK-*`, and both hyphenated and compact forms (`NL-ZH` and `NLZH`).
 
@@ -81,18 +86,18 @@ Country and region tables are generated from [`data/countries.json`](data/countr
 make build-data   # or: make generate
 ```
 
-| Target | Description |
-|---|---|
-| `make test` | Unit tests |
-| `make lint` | `gofmt` check + `go vet` |
-| `make fmt` | Format sources |
-| `make merge-data` | Merge debian + oodavid into `data/regions.json` |
-| `make build-data` | Merge sources and regenerate Go tables |
+| Target             | Description                                                            |
+| ------------------ | ---------------------------------------------------------------------- |
+| `make test`        | Unit tests                                                             |
+| `make lint`        | `go vet` + `golangci-lint`                                             |
+| `make fmt`         | Format sources                                                         |
+| `make merge-data`  | Merge debian + oodavid into `data/regions.json`                        |
+| `make build-data`  | Merge sources and regenerate Go tables                                 |
 | `make export-data` | Dump countries or regions (`KIND=countries\|regions FORMAT=json\|csv`) |
-| `make bench` | Benchmarks |
-| `make cover` | Coverage report |
-| `make tidy` | `go mod tidy` |
-| `make clean` | Remove coverage artifacts |
+| `make bench`       | Benchmarks                                                             |
+| `make cover`       | Coverage report                                                        |
+| `make tidy`        | `go mod tidy`                                                          |
+| `make clean`       | Remove coverage artifacts                                              |
 
 ## Benchmarks
 
